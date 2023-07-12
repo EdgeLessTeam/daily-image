@@ -1,305 +1,128 @@
 addEventListener('fetch', event => {
-    handleEvent0(event);
-});
+  event.respondWith(handleRequest(event.request))
+})
 
-// single redirect(without keepalive)
-function handleEvent0(event) {
-    fetch("http://open.iciba.com/dsapi", {
-        headers: {
-            "Transfer-Encoding": "chunked",
-        },
-        redirect: "follow",
-        maxFollow: 2,
-        timeoutSetting: {
-            connectTimeout: 6000,
-        }
-    }).then(resp => {
-        log("redirected: ", resp.redirected);
-        for (let url of resp.redirectUrls) {
-            log("url: ", url);
-        }
+async function handleRequest(req) {
+  let endpoint = "https://open.iciba.com/dsapi";
 
-        event.respondWith(resp);
-    });
-}
+  const method = req.method;
+  console.log("request method=" + method);
+  if (method === 'GET' || method === 'HEAD') {
+    return getIndexHtml();
+  }
 
-// single redirect(with keepalive)
-function handleEvent1(event) {
-    fetch("http://open.iciba.com/dsapi", {
-        headers: {
-            Connection: "keep-alive",
-        },
-        redirect: "follow",
-        maxFollow: 2,
-    }).then(resp => {
-        log("redirected: ", resp.redirected);
-        for (let url of resp.redirectUrls) {
-            log("url: ", url);
-        }
+  let date = await req.text();
+  if (!date || date === "") {
+    date = "2022-04-08";
+  }
+  console.log("date=" + date);
 
-        event.respondWith(resp);
-    });
-}
+  endpoint += `/?date=${date}`
+  const init = {
+    headers: Headers({
+      "User-Agent": req.headers.get("User-Agent"),
+    }),
+  }
+  console.log("fetch '" + endpoint + "'");
 
-// multiple redirect
-function handleEvent2(event) {
-    fetch("https://www.httpbin.org/redirect/301", {
-        redirect: "follow",
-        maxFollow: 64,
-    }).then(resp => {
-        log("redirected: ", resp.redirected);
-        for (let url of resp.redirectUrls) {
-            log("url: ", url);
-        }
-        event.respondWith(resp);
-    });
-}
+  try {
+    const rsp = await fetch(endpoint, init)
+    let rspData = [];
+    if (rsp.ok) {
+      const data = await rsp.text();
+      console.log("data: " + data);
 
-// addr is domain
-function handleEvent3(event) {
-    fetch("https://www.google.com/search?q=laputa&oq=laputa&aqs=chrome.0.69i59j69i57j69i60j69i61j69i60j69i65j69i60l2.559j0j1&sourceid=chrome&ie=UTF-8", {
-        redirect: "follow",
-        maxFollow: 1,
-        version: "HTTP/2.0",
-        headers: {
-            Host: "www.google.com",
-        }
-    }).then(resp => {
-        let headers = resp.headers;
-        for (let pair of headers.entries()) {
-            log(pair[0] + " = " + pair[1]);
-        }
-        event.respondWith(resp);
+      const content = JSON.parse(data);
+      // const content = await rsp.json();
+
+      let image = content["fenxiang_img"];
+      rspData.push(`<img src="${image}" width="50%" height="50%" />`);
+    } else {
+      console.log("fetch " + endpoint + " fail, " + rsp.statusText);
+      rspData.push(`<p> fetch result: ${rsp.status} ${rsp.statusText}.</p>`);
+    }
+
+    return Response(rspData.join(''), {
+      headers: {
+        "content-type": "text/html;charset=UTF-8",
+      },
     })
-}
-
-// addr is IPv4
-function handleEvent4(event) {
-    fetch("https://www.google.com/search?q=laputa&oq=laputa&aqs=chrome.0.69i59j69i57j69i60j69i61j69i60j69i65j69i60l2.559j0j1&sourceid=chrome&ie=UTF-8", {
-        redirect: "follow",
-        maxFollow: 1,
-        version: "HTTP/2.0",
-        headers: {
-            Host: "www.google.com",
-        }
-    }).then(resp => {
-        let headers = resp.headers;
-        for (let pair of headers.entries()) {
-            log(pair[0] + " = " + pair[1]);
-        }
-        event.respondWith(resp);
-    })
-}
-
-// addr is IPv6
-function handleEvent6(event) {
-    fetch("https://www.google.com/search?q=laputa&oq=laputa&aqs=chrome.0.69i59j69i57j69i60j69i61j69i60j69i65j69i60l2.559j0j1&sourceid=chrome&ie=UTF-8", {
-        redirect: "follow",
-        maxFollow: 1,
-        version: "HTTP/2.0",
-        headers: {
-            Host: "www.google.com",
-        }
-    }).then(resp => {
-        let headers = resp.headers;
-        for (let pair of headers.entries()) {
-            log(pair[0] + " = " + pair[1]);
-        }
-        event.respondWith(resp);
-    })
-}
-
-// redirect: POST (method changes)
-function handleEvent7(event) {
-    fetch("https://www.google.com/search?q=laputa&oq=laputa&aqs=chrome.0.69i59j69i57j69i60j69i61j69i60j69i65j69i60l2.559j0j1&sourceid=chrome&ie=UTF-8", {
-        redirect: "follow",
-        maxFollow: 1,
-        version: "HTTP/2.0",
-        headers: {
-            Host: "www.google.com",
-        }
-    }).then(resp => {
-        let headers = resp.headers;
-        for (let pair of headers.entries()) {
-            log(pair[0] + " = " + pair[1]);
-        }
-        event.respondWith(resp);
-    })
-}
-
-// redirect: POST (method not change)
-function handleEvent8(event) {
-    fetch("https://www.google.com/search?q=laputa&oq=laputa&aqs=chrome.0.69i59j69i57j69i60j69i61j69i60j69i65j69i60l2.559j0j1&sourceid=chrome&ie=UTF-8", {
-        redirect: "follow",
-        maxFollow: 1,
-        version: "HTTP/2.0",
-        headers: {
-            Host: "www.google.com",
-        }
-    }).then(resp => {
-        let headers = resp.headers;
-        for (let pair of headers.entries()) {
-            log(pair[0] + " = " + pair[1]);
-        }
-        event.respondWith(resp);
-    })
-}
-
-// redirect: POST (method not change)
-function handleEvent9(event) {
-    fetch("https://www.google.com/search?q=laputa&oq=laputa&aqs=chrome.0.69i59j69i57j69i60j69i61j69i60j69i65j69i60l2.559j0j1&sourceid=chrome&ie=UTF-8", {
-        redirect: "follow",
-        maxFollow: 1,
-        version: "HTTP/2.0",
-        headers: {
-            Host: "www.google.com",
-        }
-    }).then(resp => {
-        let headers = resp.headers;
-        for (let pair of headers.entries()) {
-            log(pair[0] + " = " + pair[1]);
-        }
-        event.respondWith(resp);
-    })
-}
-
-// run multiple request 
-function handleEvent10(event) {
-    fetch("http://open.iciba.com/dsapi", {
-        redirect: "follow",
-        maxFollow: 2,
-    }).then(resp => {
-        log("fetch-1 redirected: ", resp.redirected);
-        for (let url of resp.redirectUrls) {
-            log("url: ", url);
-        }
+  } catch (e) {
+    console.log("Got Exception: " + e.stack);
+    return Response("Got Exception: " + e.message, {
+      headers: {
+        "content-type": "text/html;charset=UTF-8",
+      },
     });
-
-    fetch("http://open.iciba.com/dsapi", {
-        redirect: "follow",
-        maxFollow: 2,
-    }).then(resp => {
-        log("fetch-2 redirected: ", resp.redirected);
-        for (let url of resp.redirectUrls) {
-            log("url: ", url);
-        }
-        event.respondWith(resp);
-    });
+  }
 }
 
-// multiple request with multiple redirect
-function handleEvent11(event) {
-    fetch("https://www.httpbin.org/redirect/301", {
-        redirect: "follow",
-        maxFollow: 512,
-    }).then(resp => {
-        log("fetch-1 redirected: ", resp.redirected);
-        for (let url of resp.redirectUrls) {
-            log("url: ", url);
-        }
-    });
+async function getIndexHtml() {
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>词霸每日一句</title>
+  <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.6.1/css/bootstrap.min.css" rel="stylesheet">
+</head>
 
-    fetch("https://www.httpbin.org/redirect/301", {
-        redirect: "follow",
-        maxFollow: 512,
-    }).then(resp => {
-        log("fetch-2 redirected: ", resp.redirected);
-        for (let url of resp.redirectUrls) {
-            log("url: ", url);
-        }
-        event.respondWith(resp);
-    });
-}
+<body>
+  <div class="container" style="padding: 100px 100px 10px;">
+    <form class="bs-example bs-example-form" role="form">
+      <div class="row">
+        <div class="col-lg-8">
+          <div class="input-group">
+            <input id="date" type="date" value="2022-04-08" min="2022-01-01" max="2023-01-01">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <span class="input-group-btn">
+              <button class="btn btn-primary" type="button" onclick="queryDate()">每日一句</button>
+            </span>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
 
-// multiple request(one direct the other not)
-function handleEvent12(event) {
-    fetch("http://open.iciba.com/dsapi", {
-        redirect: "follow",
-        maxFollow: 2,
-    }).then(resp => {
-        log("fetch-1 redirected: ", resp.redirected);
-        for (let url of resp.redirectUrls) {
-            log("url: ", url);
-        }
-        return resp.json();
-    }).then(data => {
-        log("fetch-1 content: ", data.content)
-    });
+  <div id="result_div" class="container" style="padding: 100px 100px 10px; visibility: hidden">
+  </div>
+</body>
+</html>
 
-    fetch("https://www.google.com/search?q=laputa&oq=laputa&aqs=chrome.0.69i59j69i60j69i61j69i60.1030j0j1&sourceid=chrome&ie=UTF-8", {
-        redirect: "follow",
-        maxFollow: 1,
-        version: "HTTP/2.0",
-        headers: {
-            Host: "www.google.com",
-        }
-    }).then(resp => {
-        log("fetch-2 redirected: ", resp.redirected);
-        event.respondWith(resp);
-    })
-}
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.js"></script>
+<script>
+  window.onload = function() {
+    let now = new Date();
+    let maxDate = now.toISOString().substring(0,10);
+    console.log("now=" + maxDate);
+    $("#date").attr("value", maxDate);
+    $("#date").attr("max", maxDate);
+    queryDate();
+  };
 
-// multiple request(two direct the other not)
-function handleEvent13(event) {
-    fetch("http://open.iciba.com/dsapi", {
-        redirect: "follow",
-        maxFollow: 2,
-    }).then(resp => {
-        log("fetch-1 redirected: ", resp.redirected);
-        for (let url of resp.redirectUrls) {
-            log("url: ", url);
-        }
-        return resp.json();
-    }).then(data => {
-        log("fetch-1 content: ", data.content)
-    });
-
-    fetch("https://www.google.com/search?q=laputa&oq=laputa&aqs=chrome.0.69i59j69i60j69i61j69i60.1030j0j1&sourceid=chrome&ie=UTF-8", {
-        redirect: "follow",
-        maxFollow: 1,
-        version: "HTTP/2.0",
-        headers: {
-            Host: "www.google.com",
-        }
-    }).then(resp => {
-        log("fetch-2 redirected: ", resp.redirected);
-        event.respondWith(resp);
+  async function queryDate() {
+    let date = $("#date").val();
+    console.log("date = " + date);
+    let requestInstance = new Request('/query', {
+      method: 'post',
+      headers: {
+        'Content-Type': 'application/text;charset=utf-8'
+      },
+      body: date,
     })
 
-    fetch("http://open.iciba.com/dsapi", {
-        redirect: "follow",
-        maxFollow: 2,
-    }).then(resp => {
-        log("fetch-3 redirected: ", resp.redirected);
-        for (let url of resp.redirectUrls) {
-            log("url: ", url);
-        }
-        return resp.json();
-    }).then(data => {
-        log("fetch-3 content: ", data.content)
-    });
-}
+    let response = await fetch(requestInstance)
+    let data = await response.text();
+    console.log(data)
 
-// chain fetch call through JS future&promise
-function handleEvent14(event) {
-    fetch("http://open.iciba.com/dsapi", {
-        redirect: "follow",
-        maxFollow: 2,
-    }).then(resp => {
-        log("fetch-1 redirected: ", resp.redirected);
-        for (let url of resp.redirectUrls) {
-            log("url: ", url);
-        }
-        return fetch("https://www.google.com/search?q=laputa&oq=laputa&aqs=chrome.0.69i59j69i60j69i61j69i60.1030j0j1&sourceid=chrome&ie=UTF-8", {
-            redirect: "follow",
-            maxFollow: 1,
-            version: "HTTP/2.0",
-            headers: {
-                Host: "www.google.com",
-            }
-        })
-    }).then(resp => {
-        log("fetch-2 redirected: ", resp.redirected);
-        event.respondWith(resp);
-    });
+    $("#result_div").html(data);
+    $("#result_div").css("visibility", "visible");
+  }
+</script>
+  `;
+
+  return Response(html, {
+    headers: {
+      "content-type": "text/html;charset=UTF-8",
+    },
+  });
 }
