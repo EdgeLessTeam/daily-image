@@ -102,7 +102,7 @@ async function getIndexHtml() {
   async function queryDate() {
     let date = $("#date").val();
     console.log("date = " + date);
-    let requestInstance = new Request('/query', {
+    let requestInstance = new Request(window.location.pathname, {
       method: 'post',
       headers: {
         'Content-Type': 'application/text;charset=utf-8'
